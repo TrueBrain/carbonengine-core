@@ -6,6 +6,7 @@
 
 #include <cstdarg>
 #include <stdexcept>
+#include <cstdint>
 #include "carbon_core_export.h"
 
 #if !defined( CCP_LOG_ENABLED )

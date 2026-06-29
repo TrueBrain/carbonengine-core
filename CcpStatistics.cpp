@@ -8,6 +8,8 @@
 #include <tracy/Tracy.hpp>
 #endif
 
+#include <cmath>
+
 static double SCALING_FACTOR_FOR_TIME = 1000000.0;
 
 CcpStatistics::EntryArray& CcpStatistics::GetEntryArray()

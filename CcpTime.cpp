@@ -4,6 +4,8 @@
 #include "include/CcpAssert.h"
 #include <cfloat>
 #include <cmath>
+#include <sys/time.h>
+#include <climits>
 
 #ifdef _WIN32
 
