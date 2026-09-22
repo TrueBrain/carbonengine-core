@@ -4,6 +4,7 @@
 #include <atomic>
 #include <cctype>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <queue>
 
@@ -93,22 +94,24 @@ FiberNameStore s_fiberNameStore; // Persisted fiber name string store, including
 
 thread_local FiberNameStore::const_iterator t_activeFiber{ s_fiberNameStore.end() }; // default to having no fiber
 
-template<>
-struct std::less<FiberNameStore::const_iterator>
+// Fibers are identified by their iterator into `s_fiberNameStore`, so containers keyed on those iterators only
+// need *an* ordering, not a meaningful one. The interned strings are stable for as long as they are in the store,
+// which makes their address a valid strict weak ordering.
+struct FiberNameOrder
 {
-	bool operator()(const FiberNameStore::const_iterator& lhs, const FiberNameStore::const_iterator& rhs) const
+	bool operator()( const FiberNameStore::const_iterator& lhs, const FiberNameStore::const_iterator& rhs ) const
 	{
-		return lhs->c_str() < rhs->c_str();
+		return std::less<const char*>{}( lhs->c_str(), rhs->c_str() );
 	}
 };
 
-typedef std::map<FiberNameStore::const_iterator, std::stack<TelemetryZone>> TaskletZoneStore;
+typedef std::map<FiberNameStore::const_iterator, std::stack<TelemetryZone>, FiberNameOrder> TaskletZoneStore;
 thread_local TaskletZoneStore t_taskletZoneStore; // Per-thread record of zones instrumented from python
 thread_local TaskletZoneStore::iterator t_activeTaskletZoneStore{ t_taskletZoneStore.end() };
 thread_local std::set<void*> t_manuallyTrackedZones; // Keep track of zones created through `CcpTelemetryEnterZone` to ensure that we only pop off the zone store's stack when leaving a manually created zone
 
 constexpr std::chrono::milliseconds s_cleanupDelay{5000};
-std::map<FiberNameStore::const_iterator, std::chrono::steady_clock::time_point> s_fiberEraseMap; // Map of fibers scheduled for erasure
+std::map<FiberNameStore::const_iterator, std::chrono::steady_clock::time_point, FiberNameOrder> s_fiberEraseMap; // Map of fibers scheduled for erasure
 
 typedef TrackableStdMap<CcpMutex*, std::pair<const char*,const char*>> MutexNameMap_t;
 typedef TrackableStdMap<CcpThreadId_t , const char*> ThreadNameMap_t;
